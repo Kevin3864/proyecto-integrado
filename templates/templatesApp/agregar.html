@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">{{ titulo }}</h3>
+        </div>
+        <div class="card-body">
+            
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+
+                <!-- 1. Mostrar errores generales (del 'clean' de forms.py) -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+
+                {% for field in form %}
+                    <!-- 
+                      Renderizar cada campo usando el filtro.
+                      Esto mostrará el label, el input, Y el mensaje de error si existe.
+                    -->
+                    {{ field|as_crispy_field }}
+                {% endfor %}
+                <!-- === FIN: CORRECCIÓN DEFINITIVA === -->
+
+                <hr>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="javascript:history.back()" class="btn btn-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+<!-- =================================================== -->
+<!-- === SCRIPT PARA MOSTRAR/OCULTAR CAMPO === -->
+<!-- (Este script se mantiene. No da error en otras páginas) -->
+<!-- =================================================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    const tipoMovimientoSelect = document.getElementById('id_tipo_movimiento');
+    const farmaciaDestinoDiv = document.getElementById('div_id_farmacia_destino');
+
+    if (!tipoMovimientoSelect || !farmaciaDestinoDiv) {
+        return; 
+    }
+
+    function toggleFarmaciaDestino() {
+        const selectedText = tipoMovimientoSelect.options[tipoMovimientoSelect.selectedIndex].text;
+
+        if (selectedText.toLowerCase().includes('traslado')) {
+            farmaciaDestinoDiv.style.display = 'block'; // Mostrar
+        } else {
+            farmaciaDestinoDiv.style.display = 'none';  // Ocultar
+        }
+    }
+
+    toggleFarmaciaDestino();
+    tipoMovimientoSelect.addEventListener('change', toggleFarmaciaDestino);
+});
+</script>
+<!-- === FIN: SCRIPT === -->
+
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Motos</h3>
+            <a href="{% url 'agregar_moto' %}" class="btn btn-success">Agregar Moto</a>
+        </div>
+        <div class="card-body">
+
+            <form method="get" class="mb-3">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="q" placeholder="Buscar por patente o modelo..." value="{{ query }}">
+                    <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                </div>
+            </form>
+
+            <table class="table table-striped table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Patente</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Año</th>
+                        <th>Propietario</th>
+                        <th>Motorista Asignado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for moto in motos %}
+                    <tr>
+                        <td>{{ moto.patente }}</td>
+                        <td>{{ moto.marca|default:"-" }}</td>
+                        <td>{{ moto.modelo|default:"-" }}</td>
+                        <td>{{ moto.anio|default:"-" }}</td>
+                        <td>{% if moto.es_propiedad_empresa %}Empresa{% else %}Motorista{% endif %}</td>
+                        <td>
+    {# Muestra el nombre y apellido si está asignado, sino '-' #}
+    {% if moto.motorista_asignado %}
+        {{ moto.motorista_asignado.nombres }} {{ moto.motorista_asignado.apellido_paterno }}
+    {% else %}
+        -
+    {% endif %}
+</td>
+                        <td>
+                            <a href="{% url 'editar_moto' moto.pk %}" class="btn btn-warning btn-sm" title="Editar Moto">✏️</a>
+                            <a href="{% url 'eliminar_moto' moto.pk %}" class="btn btn-danger btn-sm" title="Eliminar Moto">🗑️</a>
+                            {# --- NUEVO BOTÓN --- #}
+                            {# Este botón llevaría a una página para ver/agregar/editar docs de esta moto #}
+                            <a href="#" class="btn btn-secondary btn-sm" title="Documentación Anual">📄</a>
+                            {# Cambia '#' por "{% url 'gestionar_documentacion' moto.pk %}" cuando crees esa vista/URL #}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            {% if query %}
+                                No se encontraron motos que coincidan con "{{ query }}".
+                            {% else %}
+                                No hay motos registradas.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Volver al Inicio</a>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+    {# Esta es la plantilla final y corregida #}
+    {# NO incluye el bloque {% if messages %} porque ya está en base.html #}
+
+    <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title">{{ titulo }}</h3>
+            {% if subtitulo %}
+                <h5 class="card-subtitle mb-2 text-white-50">{{ subtitulo }}</h5>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                <p>Seleccione el motorista disponible que tomará este movimiento:</p>
+                
+               
+              
+                {{ form.motorista|as_crispy_field }}
+
+                <hr>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{% url 'listar_movimientos' %}" class="btn btn-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Confirmar Reemplazo</button>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+
+    <a href="{% url 'listar_movimientos' %}" class="btn btn-secondary mt-3">Volver al Listado</a>
+{% endblock %}
+

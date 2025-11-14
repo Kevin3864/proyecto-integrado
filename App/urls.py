@@ -1,0 +1,46 @@
+from django.urls import path
+from . import views # Importa TODAS las funciones de views.py
+
+urlpatterns = [
+    # 1. URL Principal
+    path('', views.home, name='home'),
+
+    # 2. Mantenedor de Motoristas
+    path('motoristas/', views.listar_motoristas, name='listar_motoristas'),
+    path('motorista/agregar/', views.agregar_motorista, name='agregar_motorista'),
+    path('motorista/editar/<int:pk>/', views.editar_motorista, name='editar_motorista'),
+    path('motorista/eliminar/<int:pk>/', views.eliminar_motorista, name='eliminar_motorista'),
+    # URL de Reemplazo (Gestión)
+    path('motorista/reemplazar/<int:pk>/', views.reemplazar_motorista, name='reemplazar_motorista'),
+
+    # 3. Mantenedor de Motos
+    path('motos/', views.listar_motos, name='listar_motos'),
+    path('moto/agregar/', views.agregar_moto, name='agregar_moto'),
+    path('moto/editar/<int:pk>/', views.editar_moto, name='editar_moto'),
+    path('moto/eliminar/<int:pk>/', views.eliminar_moto, name='eliminar_moto'),
+
+    # 4. Mantenedor de Farmacias
+    path('farmacias/', views.listar_farmacias, name='listar_farmacias'),
+    path('farmacia/agregar/', views.agregar_farmacia, name='agregar_farmacia'),
+    path('farmacia/editar/<int:pk>/', views.editar_farmacia, name='editar_farmacia'),
+    path('farmacia/eliminar/<int:pk>/', views.eliminar_farmacia, name='eliminar_farmacia'),
+
+    # 5. Mantenedor de Asignaciones
+    path('asignaciones/', views.listar_asignaciones, name='listar_asignaciones'),
+    path('asignacion/agregar/', views.agregar_asignacion, name='agregar_asignacion'),
+    path('asignacion/eliminar/<int:pk>/', views.eliminar_asignacion, name='eliminar_asignacion'),
+
+    # 6. Mantenedor de Movimientos (ACTUALIZADO)
+    path('movimientos/', views.listar_movimientos, name='listar_movimientos'),
+    path('movimientos/historial/', views.historial_movimientos, name='historial_movimientos'), 
+    path('movimiento/agregar/', views.agregar_movimiento, name='agregar_movimiento'),
+    path('movimiento/editar/<int:pk>/', views.editar_movimiento, name='editar_movimiento'),
+    path('movimiento/anular/<int:pk>/', views.anular_movimiento, name='anular_movimiento'), 
+    # URL de Reemplazo (Movimiento)
+    path('movimiento/reemplazar/<int:pk>/', views.reemplazar_movimiento, name='reemplazar_movimiento'),
+    
+    # --- ¡NUEVA URL AÑADIDA! ---
+    path('movimiento/cambiar_estado/<int:pk>/', views.cambiar_estado_movimiento, name='cambiar_estado_movimiento'),
+
+    
+]

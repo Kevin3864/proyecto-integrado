@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Farmacias</h3>
+            <a href="{% url 'agregar_farmacia' %}" class="btn btn-success">Agregar Farmacia</a>
+        </div>
+        <div class="card-body">
+
+            <form method="get" class="mb-3">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="q" placeholder="Buscar por nombre o dirección..." value="{{ query }}">
+                    <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+                </div>
+            </form>
+
+            <table class="table table-striped table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Dirección</th>
+                        <th>Región</th> <!-- COLUMNA AÑADIDA -->
+                        <th>Comuna</th>
+                        <th>Teléfono</th>
+                        <th>Horario</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in farmacias %}
+                    <tr>
+                        <td>{{ f.nombre }}</td>
+                        <td>{{ f.direccion }}</td>
+                        
+                        <!-- Región (accedemos a través de comuna -> provincia -> region) -->
+                        <td>{{ f.comuna.provincia.region.nombre|default:"-" }}</td>
+                        
+                        <!-- Comuna -->
+                        <td>{{ f.comuna.nombre|default:"-" }}</td>
+                        
+                        <td>{{ f.telefono|default:"-" }}</td>
+                        <td>
+                            {% if f.horario_apertura and f.horario_cierre %}
+                                {{ f.horario_apertura|time:"H:i" }} - {{ f.horario_cierre|time:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'editar_farmacia' f.pk %}" class="btn btn-warning btn-sm" title="Editar Farmacia">✏️</a>
+                            <a href="{% url 'eliminar_farmacia' f.pk %}" class="btn btn-danger btn-sm" title="Eliminar Farmacia">🗑️</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <!-- Colspan aumentado a 7 por la nueva columna -->
+                        <td colspan="7" class="text-center">
+                            {% if query %}
+                                No se encontraron farmacias que coincidan con "{{ query }}".
+                            {% else %}
+                                No hay farmacias registradas.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-secondary mt-3">Volver al Inicio</a>
+{% endblock %}
