@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views # Importa TODAS las funciones de views.py
+from . import views 
 
 urlpatterns = [
     # 1. URL Principal
@@ -30,7 +30,7 @@ urlpatterns = [
     path('asignacion/agregar/', views.agregar_asignacion, name='agregar_asignacion'),
     path('asignacion/eliminar/<int:pk>/', views.eliminar_asignacion, name='eliminar_asignacion'),
 
-    # 6. Mantenedor de Movimientos (ACTUALIZADO)
+    # 6. Mantenedor de Movimientos 
     path('movimientos/', views.listar_movimientos, name='listar_movimientos'),
     path('movimientos/historial/', views.historial_movimientos, name='historial_movimientos'), 
     path('movimiento/agregar/', views.agregar_movimiento, name='agregar_movimiento'),

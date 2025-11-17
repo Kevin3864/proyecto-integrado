@@ -24,13 +24,10 @@
 
 
                 {% for field in form %}
-                    <!-- 
-                      Renderizar cada campo usando el filtro.
-                      Esto mostrará el label, el input, Y el mensaje de error si existe.
-                    -->
+                    
                     {{ field|as_crispy_field }}
                 {% endfor %}
-                <!-- === FIN: CORRECCIÓN DEFINITIVA === -->
+              
 
                 <hr>
                 
@@ -43,10 +40,7 @@
         </div>
     </div>
 
-<!-- =================================================== -->
-<!-- === SCRIPT PARA MOSTRAR/OCULTAR CAMPO === -->
-<!-- (Este script se mantiene. No da error en otras páginas) -->
-<!-- =================================================== -->
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     

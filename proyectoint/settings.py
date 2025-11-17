@@ -160,7 +160,7 @@ JAZZMIN_SETTINGS = {
     # Copyright en el footer
     "copyright": "Logico App",
 
-    # The model admin list page actions bar on top or bottom
+  
     "actions_on_top": True,
     "actions_on_bottom": False,
 }
@@ -168,5 +168,5 @@ JAZZMIN_SETTINGS = {
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 # --- Configuración de Redirección de Login/Logout ---
-LOGIN_REDIRECT_URL = 'home'   # Nombre de la URL de tu página principal
-LOGOUT_REDIRECT_URL = 'login' # Nombre de la URL de tu página de inicio de sesión
+LOGIN_REDIRECT_URL = 'home'   
+LOGOUT_REDIRECT_URL = 'login' 
