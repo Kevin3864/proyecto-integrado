@@ -13,7 +13,7 @@ como:
 from django import forms
 from .models import (
     Motorista, Moto, Farmacia, Comuna, Provincia, Region,
-    ContactoEmergencia, DocumentacionMoto, Asignacion, Movimiento, TipoMovimiento
+    ContactoEmergencia, DocumentacionMoto, Asignacion, Movimiento, TipoMovimiento, Reporte
 )
 from django.core.exceptions import ValidationError
 
@@ -267,7 +267,6 @@ class ReemplazoMovimientoForm(forms.ModelForm):
 
 # Mejor Práctica: Definir la lista de opciones en un solo lugar.
 # Se filtra 'anulado' porque solo se anula desde el botón 'Anular'.
-# Se filtra 'asignado' (implícitamente) porque ya no existe en models.py.
 ESTADOS_DISPONIBLES = [estado for estado in Movimiento.ESTADOS if estado[0] != 'anulado']
 
 class CambioEstadoForm(forms.ModelForm):
@@ -287,3 +286,46 @@ class CambioEstadoForm(forms.ModelForm):
         """Añade la clase 'form-select' de Bootstrap al menú."""
         super().__init__(*args, **kwargs)
         self.fields['status'].widget.attrs.update({'class': 'form-select'})
+
+# --- Formulario de Reportes (Nuevo Mantenedor) ---
+
+class ReporteForm(forms.Form):
+    """
+    Formulario para filtrar los reportes por tipo y fecha.
+    No está vinculado a un modelo, solo procesa datos.
+    """
+    TIPOS_REPORTE = (
+        ('diario', 'Reporte Diario'),
+        ('mensual', 'Reporte Mensual'),
+        ('anual', 'Reporte Anual'),
+    )
+
+    tipo_reporte = forms.ChoiceField(
+        choices=TIPOS_REPORTE, 
+        label="Tipo de Reporte",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    fecha = forms.DateField(
+        label="Fecha de Referencia",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+
+
+
+
+# --- FORMULARIO PARA GENERAR REPORTE INDIVIDUAL ---
+class ReporteMovimientoForm(forms.ModelForm):
+    class Meta:
+        model = Reporte
+        fields = ['observacion']
+        widgets = {
+            'observacion': forms.Textarea(attrs={
+                'rows': 5, 
+                'class': 'form-control',
+                'placeholder': 'Escriba aquí las observaciones finales, estado de entrega, incidencias, etc...'
+            }),
+        }
+        labels = {
+            'observacion': 'Observaciones Finales del Movimiento'
+        }

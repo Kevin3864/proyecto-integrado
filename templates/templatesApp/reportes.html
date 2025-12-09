@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<!-- ================= STYLE FIXES ================= -->
+<style>
+    /* Texto visible en tablas */
+    table.table td,
+    table.table th {
+        color: #333 !important;
+        opacity: 1 !important;
+    }
+
+    /* BADGES PROFESIONALES (mantiene colores anteriores) */
+    .badge-entregado { background-color: #198754 !important; color: white !important; }
+    .badge-en-ruta { background-color: #0dcaf0 !important; color: white !important; }
+    .badge-fallido { background-color: #dc3545 !important; color: white !important; }
+    .badge-anulado {
+        background-color: #e9ecef !important;
+        color: #000 !important;
+        border: 1px solid #000 !important;
+        font-weight: bold;
+    }
+</style>
+<!-- ================= END STYLE FIXES ================= -->
+
+<div class="container">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 text-primary fw-bold"><i class="bi bi-bar-chart-line-fill me-2"></i>Generador de Reportes</h2>
+        <a href="{% url 'home' %}" class="btn btn-secondary rounded-pill px-4">Volver al Inicio</a>
+    </div>
+
+    <!-- TARJETA DE FILTROS PRINCIPALES -->
+    <div class="card mb-5 border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pt-4 ps-4">
+            <h5 class="card-title fw-bold text-muted"><i class="bi bi-funnel me-2"></i>Configuración del Reporte</h5>
+        </div>
+        <div class="card-body p-4">
+            <form method="GET" class="row g-3 align-items-end">
+
+                <div class="col-md-4">
+                    {{ form.tipo_reporte|as_crispy_field }}
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.fecha|as_crispy_field }}
+                </div>
+
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm py-2">
+                        <i class="bi bi-lightning-charge-fill me-2"></i>Generar Estadísticas
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div class="text-center mb-4">
+        <h3 class="fw-bold text-dark">{{ titulo_reporte }}</h3>
+        <p class="text-muted">
+            {% if selected_region or selected_provincia or selected_comuna %}
+                (Filtrado por ubicación)
+            {% else %}
+                (Todos los movimientos a nivel nacional)
+            {% endif %}
+        </p>
+    </div>
+
+    {% if movimientos %}
+
+    <!-- ================= FILTROS DE UBICACIÓN MOVIDOS ================= -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-0 py-3 ps-4">
+            <h5 class="mb-0 fw-bold text-muted"><i class="bi bi-geo-alt-fill me-2"></i>Filtros de Ubicación</h5>
+        </div>
+
+        <div class="card-body p-4">
+            <form method="GET" class="row g-3">
+
+                <!-- Mantener datos del formulario principal -->
+                <input type="hidden" name="tipo_reporte" value="{{ form.data.tipo_reporte }}">
+                <input type="hidden" name="fecha" value="{{ form.data.fecha }}">
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Región</label>
+                    <select name="region" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todas</option>
+                        {% for region in regiones %}
+                            <option value="{{ region.pk }}" {% if region.pk == selected_region %}selected{% endif %}>{{ region.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Provincia</label>
+                    <select name="provincia" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todas</option>
+                        {% for provincia in provincias %}
+                            <option value="{{ provincia.pk }}" {% if provincia.pk == selected_provincia %}selected{% endif %}>{{ provincia.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Comuna</label>
+                    <select name="comuna" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todas</option>
+                        {% for comuna in comunas %}
+                            <option value="{{ comuna.pk }}" {% if comuna.pk == selected_comuna %}selected{% endif %}>{{ comuna.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+            </form>
+        </div>
+    </div>
+    <!-- ================= END FILTROS ================= -->
+
+    <!-- TARJETAS DE RESUMEN -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow h-100 overflow-hidden">
+                <div class="card-body text-center p-5 d-flex flex-column justify-content-center"
+                     style="background: linear-gradient(135deg, #8dc63f 0%, #56ab2f 100%); color: white;">
+                    <h1 class="display-1 fw-bold mb-0">{{ total_movimientos }}</h1>
+                    <p class="lead mb-0 opacity-75">Movimientos Totales</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow h-100">
+                <div class="card-header bg-white border-bottom py-3"><h6 class="mb-0 fw-bold text-primary">Por Estado</h6></div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for item in resumen_estados %}
+                            <li class="list-group-item d-flex justify-content-between px-4 py-3 border-0">
+                                <span class="text-capitalize fw-bold">{{ item.status }}</span>
+                                <span class="badge bg-light text-dark border rounded-pill">{{ item.total }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow h-100">
+                <div class="card-header bg-white border-bottom py-3"><h6 class="mb-0 fw-bold text-info">Por Tipo</h6></div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for item in resumen_tipos %}
+                            <li class="list-group-item d-flex justify-content-between px-4 py-3 border-0">
+                                <span>{{ item.tipo_movimiento__nombre }}</span>
+                                <span class="badge bg-info rounded-pill">{{ item.total }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA DETALLADA -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 py-3 ps-4">
+            <h5 class="mb-0 fw-bold text-muted">Detalle de Movimientos</h5>
+        </div>
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="bg-light text-muted">
+                    <tr>
+                        <th class="ps-4 py-3">Fecha</th>
+                        <th>Tipo</th>
+                        <th>Motorista</th>
+                        <th>Farmacia</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for mov in movimientos %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-secondary">{{ mov.fecha_hora|date:"d/m H:i" }}</td>
+                        <td>{{ mov.tipo_movimiento.nombre }}</td>
+                        <td>{{ mov.motorista.nombres }}</td>
+                        <td>{{ mov.farmacia.nombre }}</td>
+
+                        <td>
+                            <span class="badge
+                                {% if mov.status == 'entregado' %}bg-success
+                                {% elif mov.status == 'en_ruta' %}bg-info
+                                {% elif mov.status == 'fallido' %}bg-danger
+                                {% elif mov.status == 'anulado' %}bg-light text-dark border
+                                {% else %}bg-secondary{% endif %}">
+                                {{ mov.get_status_display }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <a href="{% url 'ver_reporte_individual' mov.pk %}"
+                               class="btn btn-sm btn-outline-primary fw-bold"
+                               title="Ver Reporte">
+                                <i class="bi bi-file-earmark-text me-1"></i>Ver Reporte
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+        <div class="text-center py-5">
+            <h4 class="text-muted">No hay movimientos registrados en este periodo.</h4>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

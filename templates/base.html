@@ -11,60 +11,62 @@
     <!-- 2. Iconos Profesionales (Bootstrap Icons) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- 3. Nuestros Estilos Personalizados (El toque "Verde Lima") -->
+    <!-- 3. Estilos Personalizados -->
     <style>
         :root {
-            /* Definimos el nuevo color principal (Verde Lima) */
             --bs-primary: #8dc63f; 
             --bs-primary-rgb: 141, 198, 63;
-            --bs-body-bg: #f8f9fa; /* Fondo gris muy suave para toda la página */
+            --bs-body-bg: #f8f9fa;
         }
 
-        /* Mejoras en la Barra de Navegación */
         .navbar {
-            background-color: #fff !important; /* Navbar blanca */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08); /* Sombra suave */
+            background-color: #fff !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
         .navbar-brand {
-            color: var(--bs-primary) !important; /* Logo en verde */
-            font-weight: 900;    /* Más gordito */
-            letter-spacing: 1px; /* Un poco más separado */
+            color: var(--bs-primary) !important;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        .nav-link {
+            font-weight: 500;
+            color: #555 !important;
+        }
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--bs-primary) !important;
+            font-weight: 700;
         }
 
-        /* Mejoras en las "Cards" (las cajas de contenido) */
         .card {
-            border: none; /* Sin bordes duros */
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05); /* Sombra moderna flotante */
-            border-radius: 1rem; /* Bordes más redondeados */
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+            border-radius: 1rem;
             overflow: hidden;
         }
         .card-header {
-            background-color: #fff; /* Cabeceras blancas por defecto */
-            border-bottom: 3px solid var(--bs-primary); /* Línea de acento verde */
+            background-color: #fff;
+            border-bottom: 3px solid var(--bs-primary);
             font-weight: bold;
             color: #444;
             padding: 1rem 1.5rem;
         }
-        
-        /* Ajuste para cuando usamos bg-primary en las cabeceras antiguas */
         .card-header.bg-primary {
             background-color: var(--bs-primary) !important;
             color: white !important;
             border-bottom: none;
         }
 
-        /* Botones más modernos */
         .btn {
-            border-radius: 50rem; /* Botones completamente redondeados (estilo píldora) */
+            border-radius: 50rem;
             padding-left: 1.5rem;
             padding-right: 1.5rem;
             font-weight: 600;
         }
         .btn-primary {
-            color: #fff; /* Asegurar texto blanco en el botón verde */
+            color: #fff !important;
         }
-        
-        /* Badges (Etiquetas de estado) más bonitas */
+
         .badge {
             padding: 0.5em 0.8em;
             font-weight: 600;
@@ -75,33 +77,61 @@
 </head>
 <body>
     
-    <!-- Navbar actualizada -->
-    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light mb-4 sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
                 <i class="bi bi-truck-front-fill me-2"></i>LogiCo
             </a>
-            
-            <!-- Botón para móviles -->
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <!-- Menú de Usuario (Derecha) -->
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav">
+            <div class="collapse navbar-collapse" id="navbarNav">
+
+                {% if user.is_authenticated %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'listar_movimientos' %}">
+                            <i class="bi bi-box-seam me-1"></i>Movimientos
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'generar_reportes' %}">
+                            <i class="bi bi-bar-chart-fill me-1"></i>Reportes
+                        </a>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear-fill me-1"></i>Administración
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow">
+                            <li><a class="dropdown-item" href="{% url 'listar_motoristas' %}">Gestión de Motoristas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'listar_motos' %}">Gestión de Motos</a></li>
+                            <li><a class="dropdown-item" href="{% url 'listar_farmacias' %}">Gestión de Farmacias</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'listar_asignaciones' %}">Asignaciones</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                {% endif %}
+
+                <!-- Usuario -->
+                <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item d-flex align-items-center me-3">
-                            <span class="text-muted">
-                                <i class="bi bi-person-circle me-1"></i> Hola, <strong>{{ user.username|title }}</strong>
+                            <span class="text-muted small">
+                                <i class="bi bi-person-circle me-1"></i>{{ user.username|title }}
                             </span>
                         </li>
                         <li class="nav-item">
-                            <!-- Formulario para cerrar sesión de forma segura (POST) -->
                             <form action="{% url 'logout' %}" method="post" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                                    <i class="bi bi-box-arrow-right"></i>
                                 </button>
                             </form>
                         </li>
@@ -113,44 +143,45 @@
                         </li>
                     {% endif %}
                 </ul>
+
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
         <div class="row">
-            <div class="col-md-12"> 
-                
-                <!-- ============================================== -->
-                <!-- === INICIO: BLOQUE DE MENSAJES CORREGIDO === -->
-                <!-- ============================================== -->
+            <div class="col-md-12">
+
+                <!-- === BLOQUE DE MENSAJES (ACTUALIZADO) === -->
                 {% if messages %}
                     {% for message in messages %}
-                        
-                        <!-- 1. Lógica para traducir 'error' a 'danger' -->
+
                         {% if message.tags == 'error' %}
                             <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert">
                                 <i class="bi bi-exclamation-octagon-fill me-2"></i>
                         {% else %}
                             <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0" role="alert">
-                                {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %}
-                                {% if message.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>{% endif %}
-                                {% if message.tags == 'info' %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %}
+                                {% if message.tags == 'success' %}
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                {% endif %}
+                                {% if message.tags == 'warning' %}
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                {% endif %}
+                                {% if message.tags == 'info' %}
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                {% endif %}
                         {% endif %}
-                        
-                        <!-- 2. El contenido del mensaje -->
+
                         {{ message }}
-                        
-                        <!-- 3. El botón de cierre -->
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                     {% endfor %}
                 {% endif %}
-                <!-- === FIN: BLOQUE DE MENSAJES CORREGIDO === -->
+                <!-- === FIN BLOQUE MENSAJES === -->
 
-                <!-- Contenido Principal -->
                 {% block content %}
-                {% endblock %}  
+                {% endblock %}
 
             </div>
         </div>

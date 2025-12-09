@@ -255,3 +255,25 @@ class Movimiento(models.Model):
     def __str__(self):
         # Método para mostrar una representación legible en el Admin de Django
         return f"{self.tipo_movimiento.nombre} - {self.motorista.nombres} ({self.get_status_display()})"
+    
+    # --- NUEVO MODELO PARA REPORTES INDIVIDUALES ---
+class Reporte(models.Model):
+    """
+    Almacena el reporte final de un movimiento específico.
+    Relación 1 a 1: Un movimiento tiene un solo reporte final.
+    """
+    movimiento = models.OneToOneField(
+        Movimiento, 
+        on_delete=models.CASCADE, 
+        related_name='reporte' # Nos permite acceder como movimiento.reporte
+    )
+    observacion = models.TextField(
+        verbose_name="Observación del Reporte",
+        help_text="Conclusiones finales o detalles de la entrega."
+    )
+    fecha_generacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Generación")
+
+    def __str__(self):
+        return f"Reporte #{self.pk} - Movimiento #{self.movimiento.pk}"
+    
+    

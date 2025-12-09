@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone 
+from datetime import datetime
 # --- ¡IMPORTADO! ---
 from django.contrib.auth.decorators import login_required # <-- Mejor Práctica: Seguridad (Patrón 1)
+from django.db.models import Count # Para los reportes
 from .models import (
     Motorista, Moto, Farmacia, TipoMovimiento, Asignacion, Movimiento,
     Region, Provincia, Comuna
@@ -11,8 +13,14 @@ from django.db.models import Q # <-- Mejor Práctica: Para consultas complejas (
 
 from .forms import (
     MotoristaForm, MotoForm, FarmaciaForm, AsignacionForm, MovimientoForm, 
-    ReemplazoMovimientoForm, CambioEstadoForm,
+    ReemplazoMovimientoForm, CambioEstadoForm, ReporteForm
 )
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from django.http import HttpResponse
+
+
 
 # --- Vista Principal (Ahora protegida) ---
 @login_required
@@ -639,3 +647,280 @@ def cambiar_estado_movimiento(request, pk):
 
     # Redirige siempre a la lista de movimientos (en caso de GET o POST)
     return redirect('listar_movimientos')
+
+# --- VISTA DE REPORTES ---
+
+# -----------------------------
+#   IMPORTACIONES DE REPORTES
+# -----------------------------
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from django.http import HttpResponse
+import datetime
+
+
+# -----------------------------
+#   GENERADOR DE REPORTES
+# -----------------------------
+@login_required
+def generar_reportes(request):
+    fecha_hoy = timezone.now().date()
+    qs = Movimiento.objects.all()
+
+    titulo_reporte = f"Reporte Anual: {fecha_hoy.year}"
+    form = ReporteForm(request.GET)
+
+    if form.is_valid():
+        tipo = form.cleaned_data['tipo_reporte']
+        fecha = form.cleaned_data['fecha']
+
+        # -------- REPORTE DIARIO --------
+        if tipo == 'diario':
+            inicio = timezone.make_aware(
+                datetime.datetime.combine(fecha, datetime.time.min)
+            )
+            fin = timezone.make_aware(
+                datetime.datetime.combine(fecha, datetime.time.max)
+            )
+            qs = qs.filter(fecha_hora__range=(inicio, fin))
+            titulo_reporte = f"Reporte Diario: {fecha.strftime('%d/%m/%Y')}"
+
+        # -------- REPORTE MENSUAL --------
+        elif tipo == 'mensual':
+            from calendar import monthrange
+            anio, mes = fecha.year, fecha.month
+            ultimo_dia = monthrange(anio, mes)[1]
+
+            inicio = timezone.make_aware(datetime.datetime(anio, mes, 1, 0, 0))
+            fin = timezone.make_aware(datetime.datetime(anio, mes, ultimo_dia, 23, 59, 59))
+
+            qs = qs.filter(fecha_hora__range=(inicio, fin))
+            titulo_reporte = f"Reporte Mensual: {fecha.strftime('%B %Y')}"
+
+        # -------- REPORTE ANUAL --------
+        else:
+            qs = qs.filter(fecha_hora__year=fecha.year)
+            titulo_reporte = f"Reporte Anual: {fecha.year}"
+
+    else:
+        qs = qs.filter(fecha_hora__year=fecha_hoy.year)
+        form = ReporteForm(initial={'tipo_reporte': 'anual', 'fecha': fecha_hoy})
+
+    # ----- Filtros geográficos -----
+    region_id = request.GET.get('region')
+    provincia_id = request.GET.get('provincia')
+    comuna_id = request.GET.get('comuna')
+
+    if comuna_id:
+        qs = qs.filter(farmacia__comuna_id=comuna_id)
+    elif provincia_id:
+        qs = qs.filter(farmacia__comuna__provincia_id=provincia_id)
+    elif region_id:
+        qs = qs.filter(farmacia__comuna__provincia__region_id=region_id)
+
+    regiones = Region.objects.all().order_by('nombre')
+    provincias = Provincia.objects.none()
+    comunas = Comuna.objects.none()
+
+    if region_id:
+        provincias = Provincia.objects.filter(region_id=region_id)
+    if provincia_id:
+        comunas = Comuna.objects.filter(provincia_id=provincia_id)
+
+    total_movimientos = qs.count()
+    resumen_estados = qs.values('status').annotate(total=Count('id'))
+    resumen_tipos = qs.values('tipo_movimiento__nombre').annotate(total=Count('id'))
+
+    movimientos = qs.select_related('motorista', 'farmacia', 'tipo_movimiento').order_by('-fecha_hora')
+
+    return render(request, 'templatesApp/reportes.html', {
+        'form': form,
+        'movimientos': movimientos,
+        'total_movimientos': total_movimientos,
+        'resumen_estados': resumen_estados,
+        'resumen_tipos': resumen_tipos,
+        'titulo_reporte': titulo_reporte,
+        'titulo': 'Generador de Reportes',
+        'regiones': regiones,
+        'provincias': provincias,
+        'comunas': comunas,
+        'selected_region': int(region_id) if region_id else None,
+        'selected_provincia': int(provincia_id) if provincia_id else None,
+        'selected_comuna': int(comuna_id) if comuna_id else None,
+    })
+
+
+# -----------------------------
+#   REPORTE INDIVIDUAL (HTML)
+# -----------------------------
+@login_required
+def ver_reporte_individual(request, pk):
+    mov = Movimiento.objects.select_related(
+        'motorista',
+        'farmacia',
+        'tipo_movimiento',
+        'motorista_original',
+        'farmacia_destino'
+    ).get(pk=pk)
+
+    moto = mov.motorista.motos_asignadas.first()
+
+    return render(request, 'templatesApp/ver_reporte_individual.html', {
+        'mov': mov,
+        'moto': moto,
+        'titulo': f"Reporte del Movimiento #{mov.pk}"
+    })
+
+
+# -----------------------------
+#   REPORTE INDIVIDUAL PDF
+# -----------------------------
+@login_required
+def reporte_individual_pdf(request, pk):
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+
+    mov = Movimiento.objects.select_related(
+        'motorista', 'farmacia', 'tipo_movimiento',
+        'motorista_original', 'farmacia_destino'
+    ).get(pk=pk)
+
+    moto = mov.motorista.motos_asignadas.first()
+    farmacia = mov.farmacia
+
+    comuna = farmacia.comuna.nombre if farmacia.comuna else "—"
+    provincia = farmacia.comuna.provincia.nombre if farmacia.comuna and farmacia.comuna.provincia else "—"
+    region = farmacia.comuna.provincia.region.nombre if farmacia.comuna and farmacia.comuna.provincia and farmacia.comuna.provincia.region else "—"
+
+    response = HttpResponse(content_type="application/pdf")
+    response['Content-Disposition'] = f'inline; filename=\"reporte_movimiento_{mov.pk}.pdf\"'
+
+    pdf = SimpleDocTemplate(response, pagesize=letter, leftMargin=40, rightMargin=40)
+    styles = getSampleStyleSheet()
+    style_normal = styles['Normal']
+    style_bold = styles['Heading4']
+
+    elements = []
+
+    # ===============================
+    #      TÍTULO PRINCIPAL
+    # ===============================
+    elements.append(Paragraph(f"<b>Reporte Individual — Movimiento #{mov.pk}</b>", styles['Title']))
+    elements.append(Spacer(1, 0.25 * inch))
+
+    # ===============================
+    #      INFORMACIÓN GENERAL
+    # ===============================
+    elements.append(Paragraph("<b>Información General</b>", style_bold))
+    elements.append(Spacer(1, 0.1 * inch))
+
+    info_general = [
+        ["ID Movimiento", str(mov.pk)],
+        ["Estado", mov.get_status_display()],
+        ["Tipo de Movimiento", mov.tipo_movimiento.nombre],
+        ["Fecha y Hora", mov.fecha_hora.strftime("%d/%m/%Y %H:%M:%S")],
+    ]
+
+    table_general = Table(info_general, colWidths=[150, 350])
+    table_general.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.3, colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+    ]))
+
+    elements.append(table_general)
+    elements.append(Spacer(1, 0.3 * inch))
+
+    # ===============================
+    #       MOTORISTA / MOTO
+    # ===============================
+    elements.append(Paragraph("<b>Motorista / Vehículo</b>", style_bold))
+    elements.append(Spacer(1, 0.1 * inch))
+
+    info_motorista = [
+        ["Motorista", f"{mov.motorista.nombres} {mov.motorista.apellido_paterno or ''}".strip()],
+        ["Moto", f"{moto.patente} — {moto.modelo}" if moto else "Sin moto asignada"],
+    ]
+
+    table_motorista = Table(info_motorista, colWidths=[150, 350])
+    table_motorista.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.3, colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+    ]))
+
+    elements.append(table_motorista)
+    elements.append(Spacer(1, 0.3 * inch))
+
+    # ===============================
+    #        UBICACIÓN ORIGEN
+    # ===============================
+    elements.append(Paragraph("<b>Origen / Ubicación</b>", style_bold))
+    elements.append(Spacer(1, 0.1 * inch))
+
+    info_origen = [
+        ["Farmacia Origen", farmacia.nombre],
+        ["Dirección", farmacia.direccion],
+        ["Teléfono", farmacia.telefono or "—"],
+        ["Comuna", comuna],
+        ["Provincia", provincia],
+        ["Región", region],
+    ]
+
+    table_origen = Table(info_origen, colWidths=[150, 350])
+    table_origen.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.3, colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+    ]))
+
+    elements.append(table_origen)
+    elements.append(Spacer(1, 0.3 * inch))
+
+    # ===============================
+    #        DESTINO SI APLICA
+    # ===============================
+    if mov.farmacia_destino:
+        fd = mov.farmacia_destino
+        comuna_d = fd.comuna.nombre if fd.comuna else "—"
+        provincia_d = fd.comuna.provincia.nombre if fd.comuna and fd.comuna.provincia else "—"
+        region_d = fd.comuna.provincia.region.nombre if fd.comuna and fd.comuna.provincia and fd.comuna.provincia.region else "—"
+
+        elements.append(Paragraph("<b>Destino (Traslado)</b>", style_bold))
+        elements.append(Spacer(1, 0.1 * inch))
+
+        info_destino = [
+            ["Farmacia Destino", fd.nombre],
+            ["Dirección", fd.direccion],
+            ["Comuna", comuna_d],
+            ["Provincia", provincia_d],
+            ["Región", region_d],
+        ]
+
+        table_destino = Table(info_destino, colWidths=[150, 350])
+        table_destino.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.3, colors.grey),
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ]))
+
+        elements.append(table_destino)
+        elements.append(Spacer(1, 0.3 * inch))
+
+    # ===============================
+    #        OBSERVACIÓN
+    # ===============================
+    if mov.observacion:
+        elements.append(Paragraph("<b>Observación</b>", style_bold))
+        elements.append(Spacer(1, 0.1 * inch))
+        elements.append(Paragraph(mov.observacion.replace("\n", "<br/>"), style_normal))
+        elements.append(Spacer(1, 0.3 * inch))
+
+    pdf.build(elements)
+    return response
